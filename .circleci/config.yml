@@ -1,14 +1,8 @@
 version: 2
 jobs:
-  build:
+  install-dependencies: 
     docker:
-      # specify the version you desire here
       - image: node:11.10.1
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
 
     working_directory: ~/repo
 
@@ -22,16 +16,71 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
-      - run: yarn install
+      - run:
+          name: install
+          command: yarn install
 
       - save_cache:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
+  build:
+    docker:
+      - image: node:11.10.1
+    
+    working_directory: ~/repo
 
-      # run tests!
-      - run: yarn test
+    steps:
+      - checkout
 
-      - run: yarn build
-      
-      - run: yarn netlify:deploy
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      - run: 
+          name: build
+          command: yarn build
+
+      - persist_to_workspace:
+          root: ~/repo
+          paths: 
+            - build
+  deploy:
+    docker:
+      - image: node:11.10.1
+    
+    working_directory: ~/repo
+        
+    steps:
+      - attach_workspace:
+          at: ~/repo/
+      - run:
+          name: deploy
+          command: yarn netlify:deploy
+          
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+    - install-dependencies:
+        filters:
+          branches:
+            only: /^(develop|master)$/
+          tags:
+            only: /.*/
+    - build:
+        requires: 
+        - install-dependencies
+        filters:
+          branches:
+            only: /.*/
+          tags:
+            only: /.*/
+    - deploy:
+        requires: 
+        - build
+        filters:
+          branches: 
+            ignore: /.*/
+          tags:
+            only: /^v([0-9]+).([0-9]+).([0-9]+)$/

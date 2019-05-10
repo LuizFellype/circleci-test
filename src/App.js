@@ -155,7 +155,7 @@ const App = () => {
           value={inputValue}
           onChange={handlerValue}
         />
-        <button onClick={addClothes}>Add Clothes</button>
+        <button onClick={addClothes}>Add Item</button>
         <button onClick={addNewDay}>New Day</button>
       </div>
 
