@@ -65,7 +65,7 @@ workflows:
     - install-dependencies:
         filters:
           branches:
-            only: /.*/
+            only: /^(develop|master)$/
           tags:
             only: /.*/
     - build:
